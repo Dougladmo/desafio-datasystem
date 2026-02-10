@@ -1,17 +1,19 @@
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: propostas_postgres
+  mysql:
+    image: mysql:8.0
+    container_name: propostas_mysql
     environment:
-      POSTGRES_DB: propostas_db
-      POSTGRES_USER: propostas_user
-      POSTGRES_PASSWORD: propostas_pass
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: propostas_db
+      MYSQL_USER: propostas_user
+      MYSQL_PASSWORD: propostas_pass
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mysql_data:/var/lib/mysql
     networks:
       - propostas_network
+    command: --default-authentication-plugin=mysql_native_password
 
   redis:
     image: redis:7-alpine
@@ -31,16 +33,15 @@ services:
     volumes:
       - .:/var/www/html
     depends_on:
-      - postgres
+      - mysql
       - redis
     environment:
       - CI_ENVIRONMENT=development
     networks:
       - propostas_network
-    command: php spark serve --host=0.0.0.0 --port=8080
 
 volumes:
-  postgres_data:
+  mysql_data:
 
 networks:
   propostas_network:

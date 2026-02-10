@@ -2,14 +2,13 @@ FROM php:8.2-cli-alpine
 
 # Install system dependencies
 RUN apk add --no-cache \
-    postgresql-dev \
-    libpq \
     git \
     unzip \
-    curl
+    curl \
+    icu-dev
 
 # Install PHP extensions
-RUN docker-php-ext-install pdo pdo_pgsql pgsql
+RUN docker-php-ext-install pdo pdo_mysql mysqli intl
 
 # Install Redis extension
 RUN apk add --no-cache $PHPIZE_DEPS \
@@ -31,7 +30,11 @@ RUN composer install --no-interaction --no-dev --optimize-autoloader
 # Set permissions
 RUN chmod -R 777 writable/
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Expose port
 EXPOSE 8080
 
-CMD ["php", "spark", "serve", "--host=0.0.0.0", "--port=8080"]
+ENTRYPOINT ["docker-entrypoint.sh"]
