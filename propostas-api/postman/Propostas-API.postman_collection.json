@@ -1,0 +1,367 @@
+{
+	"info": {
+		"_postman_id": "propostas-api-collection",
+		"name": "Propostas API",
+		"description": "Coleção completa da API de Gestão de Propostas Comerciais",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Clientes",
+			"item": [
+				{
+					"name": "Criar Cliente",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao.silva@example.com\",\n  \"documento\": \"12345678901\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/clientes",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "clientes"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Buscar Cliente",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/clientes/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "clientes", "1"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Propostas",
+			"item": [
+				{
+					"name": "Criar Proposta",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Idempotency-Key",
+								"value": "{{$guid}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cliente_id\": 1,\n  \"produto\": \"Plano Premium\",\n  \"valor_mensal\": 199.90,\n  \"origem\": \"API\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Atualizar Proposta",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"produto\": \"Plano Enterprise\",\n  \"valor_mensal\": 299.90,\n  \"versao\": 0\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Buscar Proposta",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Propostas",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas?page=1&per_page=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "10"
+								},
+								{
+									"key": "status",
+									"value": "DRAFT",
+									"disabled": true
+								},
+								{
+									"key": "valor_min",
+									"value": "100",
+									"disabled": true
+								},
+								{
+									"key": "valor_max",
+									"value": "500",
+									"disabled": true
+								},
+								{
+									"key": "cliente_id",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "origem",
+									"value": "API",
+									"disabled": true
+								},
+								{
+									"key": "sort",
+									"value": "created_at:desc",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Ações de Proposta",
+			"item": [
+				{
+					"name": "Enviar Proposta para Revisão",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Idempotency-Key",
+								"value": "{{$guid}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"versao\": 0\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1/submit",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1", "submit"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Aprovar Proposta",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1/approve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1", "approve"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Rejeitar Proposta",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1/reject",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1", "reject"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Cancelar Proposta",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1/cancel",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1", "cancel"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Auditoria",
+			"item": [
+				{
+					"name": "Buscar Auditoria da Proposta",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1/auditoria",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1", "auditoria"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Testes de Idempotência",
+			"item": [
+				{
+					"name": "Teste Idempotência - Criar Proposta (Mesmo Key)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Idempotency-Key",
+								"value": "test-idempotency-123"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"cliente_id\": 1,\n  \"produto\": \"Teste Idempotência\",\n  \"valor_mensal\": 99.90,\n  \"origem\": \"API\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Testes de Optimistic Lock",
+			"item": [
+				{
+					"name": "Teste Conflito de Versão",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"produto\": \"Tentando atualizar com versão antiga\",\n  \"versao\": 0\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Testes de Fluxo de Status",
+			"item": [
+				{
+					"name": "Fluxo Válido: DRAFT → SUBMITTED",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Idempotency-Key",
+								"value": "{{$guid}}"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"versao\": 0\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1/submit",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1", "submit"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Fluxo Válido: SUBMITTED → APPROVED",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/propostas/1/approve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "propostas", "1", "approve"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8080",
+			"type": "string"
+		}
+	]
+}

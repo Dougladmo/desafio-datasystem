@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.example
+vendor/
+writable/cache/*
+writable/logs/*
+writable/session/*
+writable/uploads/*
+writable/debugbar/*
+tests/
+README.md
+docker-compose.yml
+Dockerfile
+.dockerignore
+debug-db.php

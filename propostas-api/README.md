@@ -1,69 +1,437 @@
-# CodeIgniter 4 Application Starter
+# API REST - Gestão de Propostas Comerciais
 
-## What is CodeIgniter?
+Sistema de gestão de propostas comerciais com suporte a idempotência, versionamento otimista e auditoria completa.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+## 📋 Requisitos
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+### Com Docker (Recomendado)
+- **Docker**: 20.10 ou superior
+- **Docker Compose**: 2.0 ou superior
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+### Sem Docker
+- **PHP**: 8.2 ou superior
+- **PostgreSQL**: 15 ou superior
+- **Redis**: 7 ou superior
+- **Composer**: Para gerenciamento de dependências
+- **Extensões PHP**: pdo_pgsql, redis
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+## 🚀 Instalação
 
-## Installation & updates
+### Opção 1: Com Docker (Recomendado)
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+```bash
+# 1. Executar script de setup
+./setup.sh
+```
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+Pronto! A API estará disponível em `http://localhost:8080` com banco de dados já populado.
 
-## Setup
+**Comandos úteis:**
+```bash
+# Ver logs
+docker-compose logs -f app
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+# Acessar container
+docker-compose exec app bash
 
-## Important Change with index.php
+# Parar containers
+docker-compose down
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+# Reiniciar tudo
+docker-compose restart
+```
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+### Opção 2: Instalação Manual (Sem Docker)
 
-**Please** read the user guide for a better explanation of how CI4 works!
+#### 1. Clonar/Acessar o projeto
 
-## Repository Management
+```bash
+cd propostas-api
+```
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+#### 2. Instalar dependências
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+```bash
+composer install
+```
 
-## Server Requirements
+#### 3. Configurar banco PostgreSQL
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+Crie o banco de dados:
+```sql
+CREATE DATABASE propostas_db;
+CREATE USER propostas_user WITH PASSWORD 'propostas_pass';
+GRANT ALL PRIVILEGES ON DATABASE propostas_db TO propostas_user;
+```
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+#### 4. Configurar ambiente
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+Copie o arquivo `.env.example` para `.env` e ajuste as configurações:
 
-Additionally, make sure that the following extensions are enabled in your PHP:
+```bash
+cp .env.example .env
+```
 
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+Edite `.env` e configure:
+```env
+database.default.hostname = localhost
+database.default.database = propostas_db
+database.default.username = propostas_user
+database.default.password = propostas_pass
+```
+
+#### 5. Executar migrations
+
+```bash
+php spark migrate --all
+```
+
+#### 6. Executar seeders
+
+```bash
+php spark db:seed DatabaseSeeder
+```
+
+#### 7. Iniciar servidor
+
+```bash
+php spark serve
+```
+
+A API estará disponível em `http://localhost:8080`
+
+## 📬 Testando com Postman
+
+Importe os arquivos da pasta `postman/`:
+- `Propostas-API.postman_collection.json` - Coleção completa com todos os endpoints
+- `Propostas-API.postman_environment.json` - Variáveis de ambiente
+
+A coleção inclui:
+- ✅ Todos os 11 endpoints da API
+- ✅ Exemplos de requisições
+- ✅ Testes de idempotência
+- ✅ Testes de optimistic locking
+- ✅ Testes de fluxo de status
+
+## 📚 Endpoints Disponíveis
+
+### Clientes
+
+#### Criar Cliente
+```http
+POST /api/v1/clientes
+Content-Type: application/json
+
+{
+  "nome": "João Silva",
+  "email": "joao@example.com",
+  "documento": "12345678901"
+}
+```
+
+#### Buscar Cliente
+```http
+GET /api/v1/clientes/{id}
+```
+
+### Propostas
+
+#### Criar Proposta
+```http
+POST /api/v1/propostas
+Content-Type: application/json
+Idempotency-Key: unique-key-123
+
+{
+  "cliente_id": 1,
+  "produto": "Plano Premium",
+  "valor_mensal": 199.90,
+  "origem": "API"
+}
+```
+
+#### Atualizar Proposta (com Optimistic Locking)
+```http
+PATCH /api/v1/propostas/{id}
+Content-Type: application/json
+
+{
+  "produto": "Plano Enterprise",
+  "valor_mensal": 299.90,
+  "versao": 0
+}
+```
+
+#### Buscar Proposta
+```http
+GET /api/v1/propostas/{id}
+```
+
+#### Listar Propostas (com filtros e paginação)
+```http
+GET /api/v1/propostas?status=SUBMITTED&valor_min=100&valor_max=500&page=1&per_page=10&sort=created_at:desc
+```
+
+Filtros disponíveis:
+- `status`: DRAFT, SUBMITTED, APPROVED, REJECTED, CANCELLED
+- `valor_min`: Valor mínimo
+- `valor_max`: Valor máximo
+- `cliente_id`: ID do cliente
+- `origem`: WEB, MOBILE, API
+- `page`: Página atual (padrão: 1)
+- `per_page`: Itens por página (padrão: 10, máx: 100)
+- `sort`: Campo:direção (ex: created_at:desc)
+
+#### Enviar Proposta para Revisão
+```http
+POST /api/v1/propostas/{id}/submit
+Content-Type: application/json
+Idempotency-Key: unique-key-456
+
+{
+  "versao": 0
+}
+```
+
+#### Aprovar Proposta
+```http
+POST /api/v1/propostas/{id}/approve
+```
+
+#### Rejeitar Proposta
+```http
+POST /api/v1/propostas/{id}/reject
+```
+
+#### Cancelar Proposta
+```http
+POST /api/v1/propostas/{id}/cancel
+```
+
+#### Buscar Auditoria da Proposta
+```http
+GET /api/v1/propostas/{id}/auditoria
+```
+
+## 🔐 Recursos Implementados
+
+### 1. Idempotência
+Endpoints de criação (`POST`) suportam o header `Idempotency-Key`. Requisições com a mesma chave retornam o mesmo resultado sem duplicação.
+
+**Cache**: Redis (configurável) com TTL de 24 horas
+
+### 2. Optimistic Locking
+Atualizações de propostas requerem o campo `versao` para prevenir conflitos de concorrência.
+
+**Fluxo**:
+1. Cliente lê proposta (versao: 0)
+2. Cliente envia atualização com versao: 0
+3. Se outra requisição modificou antes, retorna erro 409 Conflict
+
+### 3. Fluxo de Status
+Transições válidas:
+- `DRAFT` → `SUBMITTED`, `CANCELLED`
+- `SUBMITTED` → `APPROVED`, `REJECTED`, `CANCELLED`
+- `APPROVED` → (final)
+- `REJECTED` → (final)
+- `CANCELLED` → (final)
+
+### 4. Auditoria Automática
+Todas as operações são registradas automaticamente via Model Events:
+- `CREATED`: Proposta criada
+- `UPDATED`: Proposta atualizada
+- `SUBMITTED`: Enviada para revisão
+- `APPROVED`: Aprovada
+- `REJECTED`: Rejeitada
+- `CANCELLED`: Cancelada
+- `DELETED_LOGICAL`: Soft delete
+
+### 5. Validações
+- **CPF/CNPJ**: Validação algorítmica completa
+- **Email**: Validação de formato e unicidade
+- **Valor Mensal**: Deve ser maior que zero
+- **Status**: Apenas valores permitidos
+- **Origem**: WEB, MOBILE ou API
+
+## 🗄️ Estrutura do Banco de Dados
+
+### Tabela: clientes
+- `id`: INT (PK)
+- `nome`: VARCHAR(255)
+- `email`: VARCHAR(255) UNIQUE
+- `documento`: VARCHAR(14) (CPF/CNPJ)
+- `created_at`, `updated_at`: DATETIME
+
+### Tabela: propostas
+- `id`: INT (PK)
+- `cliente_id`: INT (FK → clientes.id)
+- `produto`: VARCHAR(255)
+- `valor_mensal`: DECIMAL(10,2)
+- `status`: ENUM
+- `origem`: ENUM
+- `versao`: INT (optimistic locking)
+- `created_at`, `updated_at`, `deleted_at`: DATETIME
+
+### Tabela: auditoria_proposta
+- `id`: INT (PK)
+- `proposta_id`: INT (FK → propostas.id)
+- `actor`: VARCHAR(255)
+- `evento`: ENUM
+- `payload`: JSON
+- `created_at`: DATETIME
+
+## 🧪 Testes
+
+### Executar todos os testes
+```bash
+./vendor/bin/phpunit
+```
+
+### Testes implementados
+- ✅ **StatusFlowTest**: Validação de transições de status
+- ✅ **IdempotencyTest**: Verificação de idempotência
+- ✅ **OptimisticLockTest**: Controle de concorrência
+- ✅ **PropostaSearchTest**: Filtros e paginação
+
+## 🏗️ Arquitetura
+
+### Princípios Aplicados
+- **KISS**: Uso de recursos nativos do CodeIgniter 4
+- **DRY**: Reutilização via Model Events
+- **YAGNI**: Apenas o solicitado, sem features extras
+- **Separation of Concerns**: Controllers slim, Models com lógica
+
+### Componentes
+```
+Request → Routes → Filter (Idempotency) → Controller → Model → Database
+                                             ↓
+                                        Validation
+                                             ↓
+                                       Model Events → Auditoria
+```
+
+### Decisões Técnicas
+
+**Por que SQLite?**
+- Simplicidade de setup (sem servidor de banco)
+- Ideal para desenvolvimento e testes
+- Suporte completo a Foreign Keys e transações
+- Fácil migração para MySQL/PostgreSQL se necessário
+
+**Por que Model Events?**
+- Auditoria automática e consistente
+- Reduz código duplicado nos controllers
+- Centraliza regras de negócio
+
+**Por que Optimistic Locking?**
+- Melhor performance que Pessimistic Lock
+- Adequado para APIs REST stateless
+- Simples de implementar e testar
+
+## 🔧 Troubleshooting
+
+### Erro de permissão no SQLite
+```bash
+chmod 666 writable/database/propostas.db
+chmod 777 writable/database
+```
+
+### Cache não funciona
+Verifique se Redis está rodando:
+```bash
+redis-cli ping
+```
+
+Ou configure cache para arquivo em `.env`:
+```env
+cache.handler = file
+```
+
+### Migrations falhando
+Limpe o banco e execute novamente:
+```bash
+rm writable/database/propostas.db
+php spark migrate --all
+```
+
+## 📝 Exemplos de Uso com cURL
+
+### Criar cliente e proposta
+```bash
+# 1. Criar cliente
+curl -X POST http://localhost:8080/api/v1/clientes \
+  -H "Content-Type: application/json" \
+  -d '{"nome":"João Silva","email":"joao@test.com","documento":"12345678901"}'
+
+# 2. Criar proposta
+curl -X POST http://localhost:8080/api/v1/propostas \
+  -H "Content-Type: application/json" \
+  -H "Idempotency-Key: abc123" \
+  -d '{"cliente_id":1,"produto":"Plano Premium","valor_mensal":199.90,"origem":"API"}'
+
+# 3. Enviar para revisão
+curl -X POST http://localhost:8080/api/v1/propostas/1/submit \
+  -H "Content-Type: application/json" \
+  -d '{"versao":0}'
+
+# 4. Aprovar
+curl -X POST http://localhost:8080/api/v1/propostas/1/approve
+
+# 5. Ver auditoria
+curl http://localhost:8080/api/v1/propostas/1/auditoria
+```
+
+## 📊 Status do Projeto
+
+- ✅ Setup inicial
+- ✅ Migrations (3 tabelas)
+- ✅ Models (Cliente, Proposta, Auditoria)
+- ✅ Validação CPF/CNPJ
+- ✅ Controllers (Base, Cliente, Proposta)
+- ✅ Idempotency Filter
+- ✅ Routes configuradas
+- ✅ Seeders criados
+- ✅ Docker Compose configurado
+- ✅ PostgreSQL + Redis
+- ✅ Coleção Postman completa
+- ⏳ Testes (a implementar)
+- ✅ Documentação
+
+## 👨‍💻 Desenvolvimento
+
+Estrutura de diretórios:
+```
+app/
+├── Config/
+│   ├── Database.php
+│   ├── Filters.php
+│   ├── Routes.php
+│   └── Validation.php
+├── Controllers/
+│   └── Api/
+│       ├── BaseController.php
+│       └── V1/
+│           ├── ClienteController.php
+│           └── PropostaController.php
+├── Database/
+│   ├── Migrations/
+│   │   ├── CreateClientesTable.php
+│   │   ├── CreatePropostasTable.php
+│   │   └── CreateAuditoriaPropostaTable.php
+│   └── Seeds/
+│       ├── DatabaseSeeder.php
+│       ├── ClienteSeeder.php
+│       └── PropostaSeeder.php
+├── Filters/
+│   └── IdempotencyFilter.php
+├── Models/
+│   ├── ClienteModel.php
+│   ├── PropostaModel.php
+│   └── AuditoriaPropostaModel.php
+└── Validation/
+    └── DocumentoRules.php
+```
+
+## 📄 Licença
+
+Este projeto foi desenvolvido como parte de um teste técnico.
