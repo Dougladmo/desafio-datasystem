@@ -163,50 +163,50 @@ curl -X POST http://localhost:8080/api/v1/propostas/2/approve
 ## Passo 5: Verificar Banco de Dados
 
 ```bash
-# Acessar PostgreSQL
-docker-compose exec postgres psql -U propostas_user -d propostas_db
+# Acessar MySQL
+docker compose exec mysql mysql -u propostas_user -ppropostas_pass propostas_db
 
 # Queries úteis
-\dt                           # Listar tabelas
+SHOW TABLES;                   # Listar tabelas
 SELECT * FROM clientes;        # Ver clientes
 SELECT * FROM propostas;       # Ver propostas
 SELECT * FROM auditoria_proposta; # Ver auditoria
-\q                            # Sair
+EXIT;                          # Sair
 ```
 
 ## Passo 6: Ver Logs
 
 ```bash
 # Logs da aplicação
-docker-compose logs -f app
+docker compose logs -f app
 
-# Logs do PostgreSQL
-docker-compose logs -f postgres
+# Logs do MySQL
+docker compose logs -f mysql
 
 # Logs do Redis
-docker-compose logs -f redis
+docker compose logs -f redis
 ```
 
 ## Comandos Úteis
 
 ```bash
 # Parar tudo
-docker-compose down
+docker compose down
 
 # Reiniciar
-docker-compose restart
+docker compose restart
 
 # Rebuild (após mudanças no código)
-docker-compose up -d --build
+docker compose up -d --build
 
 # Executar nova migration
-docker-compose exec app php spark migrate
+docker compose exec app php spark migrate
 
 # Repovoar banco
-docker-compose exec app php spark db:seed DatabaseSeeder
+docker compose exec app php spark db:seed DatabaseSeeder
 
 # Acessar container
-docker-compose exec app bash
+docker compose exec app sh
 ```
 
 ## Troubleshooting
@@ -224,17 +224,17 @@ lsof -i :6379
 
 ### Erro: "Database connection failed"
 ```bash
-# Reiniciar PostgreSQL
-docker-compose restart postgres
+# Reiniciar MySQL
+docker compose restart mysql
 
 # Ver logs
-docker-compose logs postgres
+docker compose logs mysql
 ```
 
 ### Limpar tudo e começar do zero
 ```bash
-docker-compose down -v
-./setup.sh
+docker compose down -v
+docker compose up -d
 ```
 
 ## 📚 Próximos Passos
@@ -242,7 +242,7 @@ docker-compose down -v
 - Leia o [README.md](README.md) completo para entender a arquitetura
 - Explore a [Coleção do Postman](postman/) com todos os cenários de teste
 - Verifique o código-fonte em `app/` para entender a implementação
-- Consulte o [TESTE_TECNICO.md](../TESTE_TECNICO.md) para requisitos completos
+- Execute os testes com `docker compose exec app composer test`
 
 ## 🎉 Pronto!
 

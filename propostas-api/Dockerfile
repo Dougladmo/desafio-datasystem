@@ -27,8 +27,8 @@ COPY . .
 # Install dependencies
 RUN composer install --no-interaction --no-dev --optimize-autoloader
 
-# Set permissions
-RUN chmod -R 777 writable/
+# Set permissions (writable directories need write access for PHP)
+RUN chmod -R 775 writable/ && chown -R www-data:www-data writable/
 
 # Expose port
 EXPOSE 8080
