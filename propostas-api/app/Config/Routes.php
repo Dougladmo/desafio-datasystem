@@ -10,6 +10,10 @@ $routes->get('/', 'Home::index');
 // Health Check
 $routes->get('health', 'Api\HealthController::index');
 
+// API Documentation (Swagger UI)
+$routes->get('api/docs', 'DocsController::index');
+$routes->get('api/docs/json', 'DocsController::json');
+
 // API v1 Routes
 $routes->group('api/v1', static function ($routes) {
     // Clientes

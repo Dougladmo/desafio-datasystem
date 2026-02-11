@@ -1,0 +1,908 @@
+openapi: 3.0.3
+info:
+  title: API de Gestão de Propostas
+  description: |
+    Sistema completo de gerenciamento de propostas comerciais com suporte a:
+    - ✅ Idempotência com Redis (Idempotency-Key header)
+    - ✅ Optimistic Locking para controle de concorrência
+    - ✅ Fluxo de status com validação de transições
+    - ✅ Auditoria automática de todas as operações
+    - ✅ Soft delete para propostas
+    - ✅ Validação de CPF/CNPJ
+
+    **Desenvolvido como projeto de avaliação técnica para DataSystem**
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Servidor de Desenvolvimento Local
+  - url: http://localhost:8080/api/v1
+    description: API v1
+
+tags:
+  - name: Health
+    description: Verificação de status da API
+  - name: Clientes
+    description: Gerenciamento de clientes
+  - name: Propostas
+    description: Gerenciamento de propostas comerciais
+  - name: Ações de Proposta
+    description: Transições de status de propostas
+  - name: Auditoria
+    description: Histórico de alterações
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health Check
+      description: Verifica o status da API e dos serviços dependentes (MySQL, Redis)
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Sistema saudável
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: healthy
+                timestamp: "2026-02-10 23:30:00"
+                version: "1.0.0"
+                services:
+                  database:
+                    status: up
+                    type: MySQL
+                  redis:
+                    status: up
+                    type: Redis
+        '503':
+          description: Serviço indisponível
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/clientes:
+    post:
+      tags:
+        - Clientes
+      summary: Criar novo cliente
+      description: Cria um novo cliente no sistema com validação de CPF/CNPJ
+      operationId: createCliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClienteRequest'
+            example:
+              nome: João Silva
+              email: joao.silva@example.com
+              documento: "12345678901"
+      responses:
+        '201':
+          description: Cliente criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/clientes/{id}:
+    get:
+      tags:
+        - Clientes
+      summary: Buscar cliente por ID
+      description: Retorna os dados de um cliente específico
+      operationId: getCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID do cliente
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Cliente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ClienteResponse'
+        '404':
+          description: Cliente não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/propostas:
+    get:
+      tags:
+        - Propostas
+      summary: Listar propostas
+      description: |
+        Lista propostas com suporte a filtros, ordenação e paginação.
+
+        **Filtros disponíveis:**
+        - status: Filtrar por status (DRAFT, SUBMITTED, APPROVED, REJECTED, CANCELLED)
+        - cliente_id: Filtrar por ID do cliente
+        - valor_min: Valor mínimo da proposta
+        - valor_max: Valor máximo da proposta
+        - origem: Filtrar por origem (WEB, MOBILE, API)
+      operationId: listPropostas
+      parameters:
+        - name: status
+          in: query
+          description: Filtrar por status
+          schema:
+            type: string
+            enum: [DRAFT, SUBMITTED, APPROVED, REJECTED, CANCELLED]
+        - name: cliente_id
+          in: query
+          description: Filtrar por ID do cliente
+          schema:
+            type: integer
+        - name: valor_min
+          in: query
+          description: Valor mínimo
+          schema:
+            type: number
+            format: float
+        - name: valor_max
+          in: query
+          description: Valor máximo
+          schema:
+            type: number
+            format: float
+        - name: origem
+          in: query
+          description: Origem da proposta
+          schema:
+            type: string
+            enum: [WEB, MOBILE, API]
+        - name: sort
+          in: query
+          description: Campo para ordenação
+          schema:
+            type: string
+            default: created_at
+            enum: [id, valor_mensal, created_at, updated_at]
+        - name: order
+          in: query
+          description: Direção da ordenação
+          schema:
+            type: string
+            default: desc
+            enum: [asc, desc]
+        - name: page
+          in: query
+          description: Número da página
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          description: Registros por página
+          schema:
+            type: integer
+            default: 10
+            maximum: 100
+      responses:
+        '200':
+          description: Lista de propostas
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropostasListResponse'
+
+    post:
+      tags:
+        - Propostas
+      summary: Criar nova proposta
+      description: |
+        Cria uma nova proposta comercial.
+
+        **Idempotência:**
+        Use o header `Idempotency-Key` para garantir que a mesma requisição não crie múltiplas propostas.
+        A chave é armazenada no Redis por 24 horas.
+      operationId: createProposta
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          description: Chave de idempotência (UUID recomendado)
+          required: false
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropostaRequest'
+            example:
+              cliente_id: 1
+              produto: "Plano Premium"
+              valor_mensal: 199.90
+              origem: API
+      responses:
+        '201':
+          description: Proposta criada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropostaResponse'
+        '200':
+          description: Proposta já existente (idempotência)
+          headers:
+            X-Idempotent-Replayed:
+              description: Indica que a resposta foi recuperada do cache
+              schema:
+                type: boolean
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropostaResponse'
+        '400':
+          description: Dados inválidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/propostas/{id}:
+    get:
+      tags:
+        - Propostas
+      summary: Buscar proposta por ID
+      description: Retorna os dados completos de uma proposta específica
+      operationId: getProposta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da proposta
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Proposta encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropostaResponse'
+        '404':
+          description: Proposta não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Propostas
+      summary: Atualizar proposta
+      description: |
+        Atualiza uma proposta existente.
+
+        **Optimistic Locking:**
+        O campo `versao` é obrigatório e deve corresponder à versão atual da proposta.
+        Se a versão não corresponder, retorna erro 409 (Conflict).
+      operationId: updateProposta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da proposta
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PropostaUpdateRequest'
+            example:
+              produto: "Plano Premium Plus"
+              valor_mensal: 299.90
+              versao: 0
+      responses:
+        '200':
+          description: Proposta atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropostaResponse'
+        '404':
+          description: Proposta não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflito de versão (optimistic locking)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                status: 409
+                error: Conflict
+                message: "A proposta foi modificada por outro usuário. Versão atual: 1"
+        '422':
+          description: Erro de validação
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+  /api/v1/propostas/{id}/submit:
+    post:
+      tags:
+        - Ações de Proposta
+      summary: Enviar proposta para análise
+      description: |
+        Transiciona a proposta de DRAFT para SUBMITTED.
+
+        **Transições permitidas:**
+        - DRAFT → SUBMITTED ✅
+      operationId: submitProposta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da proposta
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - versao
+              properties:
+                versao:
+                  type: integer
+                  description: Versão atual da proposta (optimistic locking)
+                  example: 0
+      responses:
+        '200':
+          description: Proposta enviada para análise
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropostaResponse'
+        '400':
+          description: Transição de status inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Proposta não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflito de versão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/propostas/{id}/approve:
+    post:
+      tags:
+        - Ações de Proposta
+      summary: Aprovar proposta
+      description: |
+        Transiciona a proposta de SUBMITTED para APPROVED.
+
+        **Transições permitidas:**
+        - SUBMITTED → APPROVED ✅
+
+        **Status final:** APPROVED é um status final, não permite mais transições.
+      operationId: approveProposta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da proposta
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - versao
+              properties:
+                versao:
+                  type: integer
+                  description: Versão atual da proposta (optimistic locking)
+                  example: 1
+      responses:
+        '200':
+          description: Proposta aprovada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropostaResponse'
+        '400':
+          description: Transição de status inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Proposta não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflito de versão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/propostas/{id}/reject:
+    post:
+      tags:
+        - Ações de Proposta
+      summary: Rejeitar proposta
+      description: |
+        Transiciona a proposta de SUBMITTED para REJECTED.
+
+        **Transições permitidas:**
+        - SUBMITTED → REJECTED ✅
+
+        **Status final:** REJECTED é um status final, não permite mais transições.
+      operationId: rejectProposta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da proposta
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - versao
+              properties:
+                versao:
+                  type: integer
+                  description: Versão atual da proposta (optimistic locking)
+                  example: 1
+      responses:
+        '200':
+          description: Proposta rejeitada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropostaResponse'
+        '400':
+          description: Transição de status inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Proposta não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflito de versão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/propostas/{id}/cancel:
+    post:
+      tags:
+        - Ações de Proposta
+      summary: Cancelar proposta
+      description: |
+        Cancela uma proposta, independente do status atual.
+
+        **Transições permitidas:**
+        - Qualquer status → CANCELLED ✅
+
+        **Status final:** CANCELLED é um status final, não permite mais transições.
+      operationId: cancelProposta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da proposta
+          schema:
+            type: integer
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - versao
+              properties:
+                versao:
+                  type: integer
+                  description: Versão atual da proposta (optimistic locking)
+                  example: 2
+      responses:
+        '200':
+          description: Proposta cancelada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PropostaResponse'
+        '404':
+          description: Proposta não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflito de versão
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/propostas/{id}/auditoria:
+    get:
+      tags:
+        - Auditoria
+      summary: Histórico de alterações
+      description: |
+        Retorna o histórico completo de todas as alterações feitas em uma proposta.
+
+        Registra automaticamente:
+        - Criação da proposta
+        - Atualizações de campos
+        - Transições de status
+        - Soft delete
+
+        Cada registro contém:
+        - Timestamp da alteração
+        - Tipo de evento
+        - Usuário/sistema que executou
+        - Payload completo da alteração
+      operationId: getAuditoria
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID da proposta
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: Histórico de auditoria
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  proposta_id:
+                    type: integer
+                    example: 1
+                  total_eventos:
+                    type: integer
+                    example: 5
+                  eventos:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditoriaEvent'
+        '404':
+          description: Proposta não encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+        timestamp:
+          type: string
+          format: date-time
+        version:
+          type: string
+        services:
+          type: object
+          properties:
+            database:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [up, down]
+                type:
+                  type: string
+            redis:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [up, down]
+                type:
+                  type: string
+
+    ClienteRequest:
+      type: object
+      required:
+        - nome
+        - email
+        - documento
+      properties:
+        nome:
+          type: string
+          minLength: 3
+          maxLength: 255
+          example: João Silva
+        email:
+          type: string
+          format: email
+          example: joao.silva@example.com
+        documento:
+          type: string
+          description: CPF (11 dígitos) ou CNPJ (14 dígitos)
+          pattern: '^\d{11}|\d{14}$'
+          example: "12345678901"
+
+    ClienteResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nome:
+          type: string
+          example: João Silva
+        email:
+          type: string
+          example: joao.silva@example.com
+        documento:
+          type: string
+          example: "12345678901"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    PropostaRequest:
+      type: object
+      required:
+        - cliente_id
+        - produto
+        - valor_mensal
+        - origem
+      properties:
+        cliente_id:
+          type: integer
+          example: 1
+        produto:
+          type: string
+          minLength: 3
+          maxLength: 255
+          example: Plano Premium
+        valor_mensal:
+          type: number
+          format: float
+          minimum: 0.01
+          example: 199.90
+        origem:
+          type: string
+          enum: [WEB, MOBILE, API]
+          example: API
+
+    PropostaUpdateRequest:
+      type: object
+      required:
+        - versao
+      properties:
+        produto:
+          type: string
+          minLength: 3
+          maxLength: 255
+          example: Plano Premium Plus
+        valor_mensal:
+          type: number
+          format: float
+          minimum: 0.01
+          example: 299.90
+        versao:
+          type: integer
+          description: Versão atual da proposta (optimistic locking)
+          example: 0
+
+    PropostaResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        cliente_id:
+          type: integer
+          example: 1
+        cliente:
+          $ref: '#/components/schemas/ClienteResponse'
+        produto:
+          type: string
+          example: Plano Premium
+        valor_mensal:
+          type: number
+          format: float
+          example: 199.90
+        status:
+          type: string
+          enum: [DRAFT, SUBMITTED, APPROVED, REJECTED, CANCELLED]
+          example: DRAFT
+        origem:
+          type: string
+          enum: [WEB, MOBILE, API]
+          example: API
+        versao:
+          type: integer
+          description: Versão atual (incrementa a cada atualização)
+          example: 0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    PropostasListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PropostaResponse'
+        pagination:
+          type: object
+          properties:
+            total:
+              type: integer
+              example: 30
+            per_page:
+              type: integer
+              example: 10
+            current_page:
+              type: integer
+              example: 1
+            last_page:
+              type: integer
+              example: 3
+            from:
+              type: integer
+              example: 1
+            to:
+              type: integer
+              example: 10
+
+    AuditoriaEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        proposta_id:
+          type: integer
+          example: 1
+        actor:
+          type: string
+          description: Quem executou a ação
+          example: system
+        evento:
+          type: string
+          enum: [CREATED, UPDATED, DELETED, STATUS_CHANGED]
+          example: CREATED
+        payload:
+          type: object
+          description: Dados da alteração em formato JSON
+          example:
+            status_anterior: DRAFT
+            status_novo: SUBMITTED
+        created_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 400
+        error:
+          type: string
+          example: Bad Request
+        message:
+          type: string
+          example: Dados inválidos
+
+    ValidationErrorResponse:
+      type: object
+      properties:
+        status:
+          type: integer
+          example: 422
+        error:
+          type: string
+          example: Unprocessable Entity
+        message:
+          type: string
+          example: Erro de validação
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            produto:
+              - O campo produto é obrigatório
+            valor_mensal:
+              - O valor mensal deve ser maior que 0
