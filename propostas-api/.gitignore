@@ -41,8 +41,9 @@ $RECYCLE.BIN/
 #-------------------------
 # These should never be under version control,
 # as it poses a security risk.
-.env
-.env.local
+# EXCEPTION: For this technical test, .env is committed with
+# development credentials to simplify setup for evaluators.
+# .env
 .vagrant
 Vagrantfile
 
@@ -65,6 +66,17 @@ writable/debugbar/*
 !writable/debugbar/index.html
 
 php_errors.log
+
+#-------------------------
+# Debug and Test Files
+#-------------------------
+debug*.php
+test-*.php
+temp*.php
+*.tmp
+*.bak
+*.swp
+*~
 
 #-------------------------
 # User Guide Temp Files
@@ -125,3 +137,10 @@ _modules/*
 
 /results/
 /phpunit*.xml
+
+#-------------------------
+# Docker and Build Files (keep these in repo)
+#-------------------------
+# Dockerfile
+# docker-compose.yml
+# .dockerignore

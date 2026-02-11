@@ -15,12 +15,16 @@ API REST completa para gerenciamento de propostas comerciais, demonstrando habil
 
 ## 🚀 Quick Start
 
+**✨ Zero configuração necessária!** Tudo já está pronto para uso.
+
 ```bash
 cd propostas-api
 docker compose up -d
 ```
 
 ⏱️ **Tempo de inicialização**: ~30 segundos
+🔑 **`.env` incluído**: Sem necessidade de configuração manual
+📦 **Banco populado**: 30 propostas de exemplo já criadas automaticamente
 
 A API estará disponível em: **http://localhost:8080**
 
@@ -178,6 +182,18 @@ Para entender melhor o projeto, consulte:
 1. **[propostas-api/README.md](propostas-api/README.md)** - Documentação técnica completa
 2. **[propostas-api/QUICKSTART.md](propostas-api/QUICKSTART.md)** - Tutorial passo a passo
 3. **[propostas-api/postman/](propostas-api/postman/)** - Collection com cenários de teste
+
+## 📌 Nota sobre `.env` Commitado
+
+⚠️ **Importante**: O arquivo `.env` foi intencionalmente incluído no repositório **apenas para facilitar a avaliação técnica**.
+
+**Justificativa**:
+- ✅ Contém apenas credenciais de desenvolvimento local (não produção)
+- ✅ Simplifica setup para avaliadores (zero configuração)
+- ✅ Demonstra conhecimento sobre quando essa prática é aceitável
+- ❌ **Nunca faça isso em produção** ou com credenciais reais
+
+Em produção, o `.env` deve estar no `.gitignore` e as credenciais devem ser gerenciadas via secrets management (Vault, AWS Secrets Manager, etc.).
 
 ## 👨‍💻 Autor
 
