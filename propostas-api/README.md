@@ -1,437 +1,383 @@
-# API REST - Gestão de Propostas Comerciais
+# API REST - Gestão de Propostas
 
-Sistema de gestão de propostas comerciais com suporte a idempotência, versionamento otimista e auditoria completa.
+Sistema de gerenciamento de propostas comerciais desenvolvido com CodeIgniter 4, MySQL e Redis.
 
-## 📋 Requisitos
+## 🚀 Quick Start - Apenas 1 Comando
 
-### Com Docker (Recomendado)
-- **Docker**: 20.10 ou superior
-- **Docker Compose**: 2.0 ou superior
+### Pré-requisitos
+- **Docker Desktop** instalado e rodando
+- **Docker Compose** (já incluído no Docker Desktop)
 
-### Sem Docker
-- **PHP**: 8.2 ou superior
-- **PostgreSQL**: 15 ou superior
-- **Redis**: 7 ou superior
-- **Composer**: Para gerenciamento de dependências
-- **Extensões PHP**: pdo_pgsql, redis
-
-## 🚀 Instalação
-
-### Opção 1: Com Docker (Recomendado)
+### Passo 1: Subir a aplicação
 
 ```bash
-# 1. Executar script de setup
-./setup.sh
+docker compose up -d
 ```
 
-Pronto! A API estará disponível em `http://localhost:8080` com banco de dados já populado.
+**O que acontece automaticamente:**
+1. ✅ Baixa as imagens (MySQL 8.0, Redis 7)
+2. ✅ Constrói a imagem da aplicação PHP
+3. ✅ Cria a rede Docker interna
+4. ✅ Inicia os 3 containers (MySQL, Redis, API)
+5. ✅ Aguarda o MySQL ficar pronto
+6. ✅ Executa as migrations (cria as 3 tabelas)
+7. ✅ Executa os seeders (popula com dados de teste)
+8. ✅ Inicia o servidor PHP na porta 8080
 
-**Comandos úteis:**
-```bash
-# Ver logs
-docker-compose logs -f app
+⏱️ **Tempo total**: 15-30 segundos (primeira vez pode demorar mais para baixar imagens)
 
-# Acessar container
-docker-compose exec app bash
-
-# Parar containers
-docker-compose down
-
-# Reiniciar tudo
-docker-compose restart
-```
-
-### Opção 2: Instalação Manual (Sem Docker)
-
-#### 1. Clonar/Acessar o projeto
+### Passo 2: Verificar se está funcionando
 
 ```bash
-cd propostas-api
+# Listar propostas (deve retornar 10 de 30 propostas)
+curl http://localhost:8080/api/v1/propostas
+
+# Buscar proposta específica
+curl http://localhost:8080/api/v1/propostas/1
+
+# Ver logs da aplicação (para debug)
+docker compose logs -f app
 ```
 
-#### 2. Instalar dependências
+### Passo 3: Parar o sistema
 
 ```bash
-composer install
+# Parar containers (mantém dados do banco)
+docker compose down
+
+# Parar e remover TODOS os dados (recomeçar do zero)
+docker compose down -v
 ```
 
-#### 3. Configurar banco PostgreSQL
+### 🔄 Reconstruir após mudanças
 
-Crie o banco de dados:
-```sql
-CREATE DATABASE propostas_db;
-CREATE USER propostas_user WITH PASSWORD 'propostas_pass';
-GRANT ALL PRIVILEGES ON DATABASE propostas_db TO propostas_user;
-```
-
-#### 4. Configurar ambiente
-
-Copie o arquivo `.env.example` para `.env` e ajuste as configurações:
+Se você modificar código ou Dockerfile:
 
 ```bash
-cp .env.example .env
+# Reconstruir e reiniciar
+docker compose up -d --build
+
+# Ou rebuild completo sem cache
+docker compose build --no-cache
+docker compose up -d
 ```
 
-Edite `.env` e configure:
-```env
-database.default.hostname = localhost
-database.default.database = propostas_db
-database.default.username = propostas_user
-database.default.password = propostas_pass
-```
-
-#### 5. Executar migrations
-
-```bash
-php spark migrate --all
-```
-
-#### 6. Executar seeders
-
-```bash
-php spark db:seed DatabaseSeeder
-```
-
-#### 7. Iniciar servidor
-
-```bash
-php spark serve
-```
-
-A API estará disponível em `http://localhost:8080`
-
-## 📬 Testando com Postman
-
-Importe os arquivos da pasta `postman/`:
-- `Propostas-API.postman_collection.json` - Coleção completa com todos os endpoints
-- `Propostas-API.postman_environment.json` - Variáveis de ambiente
-
-A coleção inclui:
-- ✅ Todos os 11 endpoints da API
-- ✅ Exemplos de requisições
-- ✅ Testes de idempotência
-- ✅ Testes de optimistic locking
-- ✅ Testes de fluxo de status
-
-## 📚 Endpoints Disponíveis
+## 📋 Endpoints Disponíveis
 
 ### Clientes
-
-#### Criar Cliente
-```http
-POST /api/v1/clientes
-Content-Type: application/json
-
-{
-  "nome": "João Silva",
-  "email": "joao@example.com",
-  "documento": "12345678901"
-}
-```
-
-#### Buscar Cliente
-```http
-GET /api/v1/clientes/{id}
-```
+- `POST /api/v1/clientes` - Criar cliente
+- `GET /api/v1/clientes/{id}` - Buscar cliente por ID
 
 ### Propostas
+- `GET /api/v1/propostas` - Listar propostas (com filtros e paginação)
+- `POST /api/v1/propostas` - Criar proposta (com idempotência)
+- `GET /api/v1/propostas/{id}` - Buscar proposta por ID
+- `PUT /api/v1/propostas/{id}` - Atualizar proposta (com optimistic locking)
 
-#### Criar Proposta
-```http
-POST /api/v1/propostas
-Content-Type: application/json
-Idempotency-Key: unique-key-123
+### Ações de Proposta
+- `POST /api/v1/propostas/{id}/submit` - Enviar para análise
+- `POST /api/v1/propostas/{id}/approve` - Aprovar proposta
+- `POST /api/v1/propostas/{id}/reject` - Rejeitar proposta
+- `POST /api/v1/propostas/{id}/cancel` - Cancelar proposta
 
-{
-  "cliente_id": 1,
-  "produto": "Plano Premium",
-  "valor_mensal": 199.90,
-  "origem": "API"
-}
-```
+### Auditoria
+- `GET /api/v1/propostas/{id}/auditoria` - Histórico de alterações
 
-#### Atualizar Proposta (com Optimistic Locking)
-```http
-PATCH /api/v1/propostas/{id}
-Content-Type: application/json
+## 🧪 Testando com Postman (Recomendado)
 
-{
-  "produto": "Plano Enterprise",
-  "valor_mensal": 299.90,
-  "versao": 0
-}
-```
+### Passo 1: Importar Collection
 
-#### Buscar Proposta
-```http
-GET /api/v1/propostas/{id}
-```
+1. Abra o **Postman**
+2. Clique em **Import** (botão no canto superior esquerdo)
+3. Arraste ou selecione os arquivos da pasta `postman/`:
+   - 📄 `Propostas-API.postman_collection.json` - Collection com 11 endpoints
+   - 🌍 `Propostas-API.postman_environment.json` - Variáveis de ambiente
 
-#### Listar Propostas (com filtros e paginação)
-```http
-GET /api/v1/propostas?status=SUBMITTED&valor_min=100&valor_max=500&page=1&per_page=10&sort=created_at:desc
-```
+### Passo 2: Configurar Environment
 
-Filtros disponíveis:
-- `status`: DRAFT, SUBMITTED, APPROVED, REJECTED, CANCELLED
-- `valor_min`: Valor mínimo
-- `valor_max`: Valor máximo
-- `cliente_id`: ID do cliente
-- `origem`: WEB, MOBILE, API
-- `page`: Página atual (padrão: 1)
-- `per_page`: Itens por página (padrão: 10, máx: 100)
-- `sort`: Campo:direção (ex: created_at:desc)
+1. No canto superior direito, selecione o environment: **"Propostas API - Local"**
+2. Verifique se a variável `base_url` está configurada como `http://localhost:8080`
 
-#### Enviar Proposta para Revisão
-```http
-POST /api/v1/propostas/{id}/submit
-Content-Type: application/json
-Idempotency-Key: unique-key-456
+### Passo 3: Testar os Endpoints
 
-{
-  "versao": 0
-}
-```
+A collection está organizada em pastas. **Ordem sugerida de testes:**
 
-#### Aprovar Proposta
-```http
-POST /api/v1/propostas/{id}/approve
-```
+#### 📁 1. Clientes
+- ✅ `POST Criar Cliente` - Cria um novo cliente
+- ✅ `GET Buscar Cliente por ID` - Busca cliente criado
 
-#### Rejeitar Proposta
-```http
-POST /api/v1/propostas/{id}/reject
-```
+#### 📁 2. Propostas - CRUD
+- ✅ `POST Criar Proposta` - Cria proposta (observe o `Idempotency-Key`)
+- ✅ `POST Criar Proposta (Idempotência)` - Mesma key retorna mesma proposta
+- ✅ `GET Listar Propostas` - Lista com paginação
+- ✅ `GET Buscar Proposta por ID` - Busca específica
+- ✅ `PUT Atualizar Proposta` - Atualiza com optimistic locking
 
-#### Cancelar Proposta
-```http
-POST /api/v1/propostas/{id}/cancel
-```
+#### 📁 3. Propostas - Ações
+- ✅ `POST Enviar para Análise (Submit)` - DRAFT → SUBMITTED
+- ✅ `POST Aprovar Proposta` - SUBMITTED → APPROVED
+- ✅ `POST Rejeitar Proposta` - SUBMITTED → REJECTED
+- ✅ `POST Cancelar Proposta` - Qualquer status → CANCELLED
 
-#### Buscar Auditoria da Proposta
-```http
-GET /api/v1/propostas/{id}/auditoria
-```
+#### 📁 4. Auditoria
+- ✅ `GET Histórico de Auditoria` - Ver todas alterações da proposta
 
-## 🔐 Recursos Implementados
+#### 📁 5. Filtros e Buscas
+- ✅ `GET Filtrar por Status` - Filtra propostas por status
+- ✅ `GET Filtrar por Valor` - Busca por faixa de preço
+- ✅ `GET Ordenação e Paginação` - Ordena e pagina resultados
 
-### 1. Idempotência
-Endpoints de criação (`POST`) suportam o header `Idempotency-Key`. Requisições com a mesma chave retornam o mesmo resultado sem duplicação.
+### 🎯 Cenários de Teste Importantes
 
-**Cache**: Redis (configurável) com TTL de 24 horas
+#### Teste 1: Idempotência
+1. Execute `POST Criar Proposta` - Anote o ID retornado
+2. Execute novamente `POST Criar Proposta (Idempotência)` com a **mesma** `Idempotency-Key`
+3. ✅ **Resultado esperado**: Retorna a mesma proposta, não cria duplicata
 
-### 2. Optimistic Locking
-Atualizações de propostas requerem o campo `versao` para prevenir conflitos de concorrência.
+#### Teste 2: Optimistic Locking
+1. Execute `GET Buscar Proposta por ID` - Anote o campo `versao` (ex: 0)
+2. Execute `PUT Atualizar Proposta` com `versao: 0`
+3. ✅ **Resultado esperado**: Atualização bem-sucedida, versão incrementa para 1
+4. Tente atualizar novamente com `versao: 0` (versão antiga)
+5. ❌ **Resultado esperado**: Erro 409 Conflict
 
-**Fluxo**:
-1. Cliente lê proposta (versao: 0)
-2. Cliente envia atualização com versao: 0
-3. Se outra requisição modificou antes, retorna erro 409 Conflict
+#### Teste 3: Fluxo de Status
+1. Crie uma proposta (status inicial: DRAFT)
+2. Execute `POST Enviar para Análise` (DRAFT → SUBMITTED)
+3. Execute `POST Aprovar Proposta` (SUBMITTED → APPROVED)
+4. Tente executar `POST Rejeitar Proposta`
+5. ❌ **Resultado esperado**: Erro - status APPROVED é final
 
-### 3. Fluxo de Status
-Transições válidas:
-- `DRAFT` → `SUBMITTED`, `CANCELLED`
-- `SUBMITTED` → `APPROVED`, `REJECTED`, `CANCELLED`
-- `APPROVED` → (final)
-- `REJECTED` → (final)
-- `CANCELLED` → (final)
+#### Teste 4: Auditoria
+1. Execute várias ações em uma proposta (criar, atualizar, submit, aprovar)
+2. Execute `GET Histórico de Auditoria`
+3. ✅ **Resultado esperado**: Lista todas as ações com timestamps e payloads
 
-### 4. Auditoria Automática
-Todas as operações são registradas automaticamente via Model Events:
-- `CREATED`: Proposta criada
-- `UPDATED`: Proposta atualizada
-- `SUBMITTED`: Enviada para revisão
-- `APPROVED`: Aprovada
-- `REJECTED`: Rejeitada
-- `CANCELLED`: Cancelada
-- `DELETED_LOGICAL`: Soft delete
+### 💡 Dicas do Postman
 
-### 5. Validações
-- **CPF/CNPJ**: Validação algorítmica completa
-- **Email**: Validação de formato e unicidade
-- **Valor Mensal**: Deve ser maior que zero
-- **Status**: Apenas valores permitidos
-- **Origem**: WEB, MOBILE ou API
+- **Variáveis**: A collection usa `{{base_url}}` e `{{proposta_id}}` automaticamente
+- **Scripts**: Alguns requests salvam IDs automaticamente para uso nos próximos
+- **Idempotency-Key**: É gerado automaticamente com `{{$guid}}`
+- **Status**: Observe o código HTTP de resposta (200, 201, 400, 409, etc.)
 
-## 🗄️ Estrutura do Banco de Dados
+## 🎯 Funcionalidades Implementadas
+
+### Regras de Negócio
+- ✅ **Idempotência**: Suporte a `Idempotency-Key` header com cache Redis (24h)
+- ✅ **Optimistic Locking**: Controle de concorrência com campo `versao`
+- ✅ **Fluxo de Status**: Transições validadas (DRAFT → SUBMITTED → APPROVED/REJECTED)
+- ✅ **Auditoria Automática**: Todas as alterações registradas via Model Events
+- ✅ **Soft Delete**: Deleção lógica de propostas
+- ✅ **Validação de CPF/CNPJ**: Validação algorítmica de documentos
+
+### Tecnologias
+- **Backend**: PHP 8.2 + CodeIgniter 4.7
+- **Banco de Dados**: MySQL 8.0
+- **Cache**: Redis 7
+- **Containerização**: Docker + Docker Compose
+
+## 📊 Estrutura do Banco de Dados
 
 ### Tabela: clientes
-- `id`: INT (PK)
-- `nome`: VARCHAR(255)
-- `email`: VARCHAR(255) UNIQUE
-- `documento`: VARCHAR(14) (CPF/CNPJ)
-- `created_at`, `updated_at`: DATETIME
+- `id` - Identificador único
+- `nome` - Nome do cliente
+- `email` - Email único
+- `documento` - CPF ou CNPJ (validado)
+- `created_at`, `updated_at` - Timestamps
 
 ### Tabela: propostas
-- `id`: INT (PK)
-- `cliente_id`: INT (FK → clientes.id)
-- `produto`: VARCHAR(255)
-- `valor_mensal`: DECIMAL(10,2)
-- `status`: ENUM
-- `origem`: ENUM
-- `versao`: INT (optimistic locking)
-- `created_at`, `updated_at`, `deleted_at`: DATETIME
+- `id` - Identificador único
+- `cliente_id` - FK para clientes
+- `produto` - Nome do produto/serviço
+- `valor_mensal` - Valor da proposta
+- `status` - DRAFT | SUBMITTED | APPROVED | REJECTED | CANCELLED
+- `origem` - WEB | MOBILE | API
+- `versao` - Versão para optimistic locking
+- `created_at`, `updated_at`, `deleted_at` - Timestamps
 
 ### Tabela: auditoria_proposta
-- `id`: INT (PK)
-- `proposta_id`: INT (FK → propostas.id)
-- `actor`: VARCHAR(255)
-- `evento`: ENUM
-- `payload`: JSON
-- `created_at`: DATETIME
+- `id` - Identificador único
+- `proposta_id` - FK para propostas
+- `actor` - Quem fez a alteração
+- `evento` - Tipo de evento (CREATED, UPDATED, DELETED, etc.)
+- `payload` - Dados da alteração (JSON)
+- `created_at` - Timestamp
 
-## 🧪 Testes
+## 🔧 Comandos Úteis
 
-### Executar todos os testes
+### Ver logs da aplicação
 ```bash
-./vendor/bin/phpunit
+docker compose logs -f app
 ```
 
-### Testes implementados
-- ✅ **StatusFlowTest**: Validação de transições de status
-- ✅ **IdempotencyTest**: Verificação de idempotência
-- ✅ **OptimisticLockTest**: Controle de concorrência
-- ✅ **PropostaSearchTest**: Filtros e paginação
-
-## 🏗️ Arquitetura
-
-### Princípios Aplicados
-- **KISS**: Uso de recursos nativos do CodeIgniter 4
-- **DRY**: Reutilização via Model Events
-- **YAGNI**: Apenas o solicitado, sem features extras
-- **Separation of Concerns**: Controllers slim, Models com lógica
-
-### Componentes
-```
-Request → Routes → Filter (Idempotency) → Controller → Model → Database
-                                             ↓
-                                        Validation
-                                             ↓
-                                       Model Events → Auditoria
-```
-
-### Decisões Técnicas
-
-**Por que SQLite?**
-- Simplicidade de setup (sem servidor de banco)
-- Ideal para desenvolvimento e testes
-- Suporte completo a Foreign Keys e transações
-- Fácil migração para MySQL/PostgreSQL se necessário
-
-**Por que Model Events?**
-- Auditoria automática e consistente
-- Reduz código duplicado nos controllers
-- Centraliza regras de negócio
-
-**Por que Optimistic Locking?**
-- Melhor performance que Pessimistic Lock
-- Adequado para APIs REST stateless
-- Simples de implementar e testar
-
-## 🔧 Troubleshooting
-
-### Erro de permissão no SQLite
+### Ver logs do MySQL
 ```bash
-chmod 666 writable/database/propostas.db
-chmod 777 writable/database
+docker compose logs -f mysql
 ```
 
-### Cache não funciona
-Verifique se Redis está rodando:
+### Acessar o container da aplicação
 ```bash
-redis-cli ping
+docker compose exec app sh
 ```
 
-Ou configure cache para arquivo em `.env`:
-```env
-cache.handler = file
-```
-
-### Migrations falhando
-Limpe o banco e execute novamente:
+### Executar comandos CodeIgniter
 ```bash
-rm writable/database/propostas.db
-php spark migrate --all
+# Ver status das migrations
+docker compose exec app php spark migrate:status
+
+# Criar nova migration
+docker compose exec app php spark make:migration NomeDaMigration
+
+# Rollback de migrations
+docker compose exec app php spark migrate:rollback
 ```
 
-## 📝 Exemplos de Uso com cURL
-
-### Criar cliente e proposta
+### Limpar tudo e recomeçar
 ```bash
-# 1. Criar cliente
+docker compose down -v  # Remove volumes (apaga dados do banco)
+docker compose up -d    # Recria tudo do zero
+```
+
+## 📝 Exemplos de Uso
+
+### Criar Cliente
+```bash
 curl -X POST http://localhost:8080/api/v1/clientes \
   -H "Content-Type: application/json" \
-  -d '{"nome":"João Silva","email":"joao@test.com","documento":"12345678901"}'
+  -d '{
+    "nome": "João Silva",
+    "email": "joao@example.com",
+    "documento": "12345678901"
+  }'
+```
 
-# 2. Criar proposta
+### Criar Proposta com Idempotência
+```bash
 curl -X POST http://localhost:8080/api/v1/propostas \
   -H "Content-Type: application/json" \
-  -H "Idempotency-Key: abc123" \
-  -d '{"cliente_id":1,"produto":"Plano Premium","valor_mensal":199.90,"origem":"API"}'
+  -H "Idempotency-Key: minha-chave-unica-123" \
+  -d '{
+    "cliente_id": 1,
+    "produto": "Plano Premium",
+    "valor_mensal": 499.90,
+    "origem": "API"
+  }'
+```
 
-# 3. Enviar para revisão
+### Atualizar Proposta com Optimistic Locking
+```bash
+curl -X PUT http://localhost:8080/api/v1/propostas/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "produto": "Plano Premium Plus",
+    "valor_mensal": 599.90,
+    "versao": 0
+  }'
+```
+
+### Enviar Proposta para Análise
+```bash
 curl -X POST http://localhost:8080/api/v1/propostas/1/submit \
   -H "Content-Type: application/json" \
-  -d '{"versao":0}'
+  -d '{"versao": 0}'
+```
 
-# 4. Aprovar
-curl -X POST http://localhost:8080/api/v1/propostas/1/approve
+### Listar Propostas com Filtros
+```bash
+# Filtrar por status
+curl "http://localhost:8080/api/v1/propostas?status=SUBMITTED"
 
-# 5. Ver auditoria
+# Filtrar por faixa de valor
+curl "http://localhost:8080/api/v1/propostas?valor_min=1000&valor_max=5000"
+
+# Ordenar e paginar
+curl "http://localhost:8080/api/v1/propostas?sort=valor_mensal&order=desc&page=1&per_page=20"
+```
+
+### Buscar Histórico de Auditoria
+```bash
 curl http://localhost:8080/api/v1/propostas/1/auditoria
 ```
 
-## 📊 Status do Projeto
+## 🐛 Troubleshooting
 
-- ✅ Setup inicial
-- ✅ Migrations (3 tabelas)
-- ✅ Models (Cliente, Proposta, Auditoria)
-- ✅ Validação CPF/CNPJ
-- ✅ Controllers (Base, Cliente, Proposta)
-- ✅ Idempotency Filter
-- ✅ Routes configuradas
-- ✅ Seeders criados
-- ✅ Docker Compose configurado
-- ✅ PostgreSQL + Redis
-- ✅ Coleção Postman completa
-- ⏳ Testes (a implementar)
-- ✅ Documentação
+### Porta 8080 já está em uso
+```bash
+# Verificar processos usando a porta
+lsof -i :8080
 
-## 👨‍💻 Desenvolvimento
+# Matar processo (substitua PID pelo número do processo)
+kill <PID>
 
-Estrutura de diretórios:
-```
-app/
-├── Config/
-│   ├── Database.php
-│   ├── Filters.php
-│   ├── Routes.php
-│   └── Validation.php
-├── Controllers/
-│   └── Api/
-│       ├── BaseController.php
-│       └── V1/
-│           ├── ClienteController.php
-│           └── PropostaController.php
-├── Database/
-│   ├── Migrations/
-│   │   ├── CreateClientesTable.php
-│   │   ├── CreatePropostasTable.php
-│   │   └── CreateAuditoriaPropostaTable.php
-│   └── Seeds/
-│       ├── DatabaseSeeder.php
-│       ├── ClienteSeeder.php
-│       └── PropostaSeeder.php
-├── Filters/
-│   └── IdempotencyFilter.php
-├── Models/
-│   ├── ClienteModel.php
-│   ├── PropostaModel.php
-│   └── AuditoriaPropostaModel.php
-└── Validation/
-    └── DocumentoRules.php
+# Ou altere a porta no docker-compose.yml:
+ports:
+  - "8081:8080"  # Usar porta 8081 no host
 ```
 
-## 📄 Licença
+### MySQL não está pronto
+Se você vir erros de conexão com o banco, aguarde alguns segundos adicionais. O entrypoint já tem verificação de healthcheck, mas em máquinas mais lentas pode demorar um pouco mais.
 
-Este projeto foi desenvolvido como parte de um teste técnico.
+### Limpar cache do Redis
+```bash
+docker compose exec redis redis-cli FLUSHALL
+```
+
+## 🏗️ Arquitetura
+
+```
+┌─────────────────────────────────────────────┐
+│           Docker Compose Network            │
+│                                             │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
+│  │  MySQL   │  │  Redis   │  │   API    │ │
+│  │  :3306   │  │  :6379   │  │  :8080   │ │
+│  └──────────┘  └──────────┘  └──────────┘ │
+└─────────────────────────────────────────────┘
+```
+
+### Fluxo de Request
+1. Request HTTP → PHP Server
+2. Idempotency Filter → Verifica Redis
+3. Routes → Controller
+4. Controller → Model (Business Logic)
+5. Model Events → Auditoria
+6. Response → JSON
+
+## 📄 Estrutura de Diretórios
+
+```
+propostas-api/
+├── app/
+│   ├── Config/
+│   │   ├── Database.php          # Configuração do banco
+│   │   ├── Routes.php            # Definição de rotas
+│   │   └── Validation.php        # Regras de validação
+│   ├── Controllers/
+│   │   └── Api/V1/
+│   │       ├── ClienteController.php
+│   │       └── PropostaController.php
+│   ├── Database/
+│   │   ├── Migrations/           # Migrations do banco
+│   │   └── Seeds/                # Seeders de dados
+│   ├── Filters/
+│   │   └── IdempotencyFilter.php # Filtro de idempotência
+│   ├── Models/
+│   │   ├── AuditoriaPropostaModel.php
+│   │   ├── ClienteModel.php
+│   │   └── PropostaModel.php
+│   └── Validation/
+│       └── DocumentoRules.php    # Validação CPF/CNPJ
+├── postman/                      # Collections Postman
+├── docker-compose.yml            # Orquestração Docker
+├── Dockerfile                    # Imagem da aplicação
+├── docker-entrypoint.sh          # Script de inicialização
+└── README.md                     # Este arquivo
+```
+
+## 👨‍💻 Autor
+
+Desenvolvido como parte do teste técnico de Gestão de Propostas.
+
+---
+
+**📌 Nota**: Este projeto foi desenvolvido para fins de avaliação técnica e demonstração de habilidades em desenvolvimento backend.

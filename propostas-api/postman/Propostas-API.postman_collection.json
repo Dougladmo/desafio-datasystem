@@ -78,7 +78,7 @@
 				{
 					"name": "Atualizar Proposta",
 					"request": {
-						"method": "PATCH",
+						"method": "PUT",
 						"header": [
 							{
 								"key": "Content-Type",
@@ -290,7 +290,7 @@
 				{
 					"name": "Teste Conflito de Versão",
 					"request": {
-						"method": "PATCH",
+						"method": "PUT",
 						"header": [
 							{
 								"key": "Content-Type",

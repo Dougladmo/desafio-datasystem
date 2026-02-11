@@ -96,7 +96,7 @@ Resultado: Mesma proposta retornada, sem duplicação! ✅
 curl http://localhost:8080/api/v1/propostas/1
 
 # 2. Tentar atualizar com versão antiga
-curl -X PATCH http://localhost:8080/api/v1/propostas/1 \
+curl -X PUT http://localhost:8080/api/v1/propostas/1 \
   -H "Content-Type: application/json" \
   -d '{
     "produto": "Tentando com versão antiga",

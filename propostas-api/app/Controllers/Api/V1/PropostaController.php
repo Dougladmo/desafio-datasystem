@@ -40,7 +40,7 @@ class PropostaController extends BaseController
     /**
      * Update a proposal with optimistic locking
      *
-     * PATCH /api/v1/propostas/{id}
+     * PUT /api/v1/propostas/{id}
      */
     public function update($id = null): ResponseInterface
     {

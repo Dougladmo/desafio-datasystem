@@ -15,7 +15,7 @@ $routes->group('api/v1', static function ($routes) {
 
     // Propostas
     $routes->post('propostas', 'Api\V1\PropostaController::create', ['filter' => 'idempotency']);
-    $routes->patch('propostas/(:num)', 'Api\V1\PropostaController::update/$1');
+    $routes->put('propostas/(:num)', 'Api\V1\PropostaController::update/$1');
     $routes->get('propostas/(:num)', 'Api\V1\PropostaController::show/$1');
     $routes->get('propostas', 'Api\V1\PropostaController::index');
 
