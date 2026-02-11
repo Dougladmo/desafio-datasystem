@@ -12,7 +12,7 @@ class AuditoriaPropostaModel extends Model
     protected $returnType = 'array';
     protected $useSoftDeletes = false;
     protected $protectFields = true;
-    protected $allowedFields = ['proposta_id', 'actor', 'evento', 'payload'];
+    protected $allowedFields = ['proposta_id', 'actor', 'evento', 'payload', 'created_at'];
 
     // Dates
     protected $useTimestamps = false;
