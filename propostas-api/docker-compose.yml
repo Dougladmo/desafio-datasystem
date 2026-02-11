@@ -37,6 +37,7 @@ services:
       - "8080:8080"
     volumes:
       - .:/var/www/html
+      - vendor_data:/var/www/html/vendor
     depends_on:
       mysql:
         condition: service_healthy
@@ -56,6 +57,7 @@ services:
     container_name: propostas_init
     volumes:
       - .:/var/www/html
+      - vendor_data:/var/www/html/vendor
     depends_on:
       mysql:
         condition: service_healthy
@@ -74,6 +76,7 @@ services:
 
 volumes:
   mysql_data:
+  vendor_data:
 
 networks:
   propostas_network:

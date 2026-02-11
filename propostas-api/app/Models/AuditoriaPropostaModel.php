@@ -15,7 +15,7 @@ class AuditoriaPropostaModel extends Model
     protected $allowedFields = ['proposta_id', 'actor', 'evento', 'payload'];
 
     // Dates
-    protected $useTimestamps = true;
+    protected $useTimestamps = false;
     protected $dateFormat = 'datetime';
     protected $createdField = 'created_at';
     protected $updatedField = false;
@@ -39,7 +39,8 @@ class AuditoriaPropostaModel extends Model
             'proposta_id' => $propostaId,
             'actor' => $this->getActor(),
             'evento' => $evento,
-            'payload' => json_encode($payload)
+            'payload' => json_encode($payload),
+            'created_at' => date('Y-m-d H:i:s')
         ];
 
         return $this->insert($data) !== false;

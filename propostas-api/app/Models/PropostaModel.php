@@ -15,7 +15,7 @@ class PropostaModel extends Model
     protected $allowedFields = ['cliente_id', 'produto', 'valor_mensal', 'status', 'origem', 'versao'];
 
     // Dates
-    protected $useTimestamps = true;
+    protected $useTimestamps = false;
     protected $dateFormat = 'datetime';
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
@@ -78,6 +78,14 @@ class PropostaModel extends Model
         }
         if (!isset($data['data']['versao'])) {
             $data['data']['versao'] = 0;
+        }
+        // Set timestamps manually
+        $now = date('Y-m-d H:i:s');
+        if (!isset($data['data']['created_at'])) {
+            $data['data']['created_at'] = $now;
+        }
+        if (!isset($data['data']['updated_at'])) {
+            $data['data']['updated_at'] = $now;
         }
         return $data;
     }

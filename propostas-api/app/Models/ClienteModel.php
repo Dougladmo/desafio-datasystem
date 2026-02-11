@@ -15,7 +15,7 @@ class ClienteModel extends Model
     protected $allowedFields = ['nome', 'email', 'documento'];
 
     // Dates
-    protected $useTimestamps = true;
+    protected $useTimestamps = false;
     protected $dateFormat = 'datetime';
     protected $createdField = 'created_at';
     protected $updatedField = 'updated_at';
@@ -48,4 +48,32 @@ class ClienteModel extends Model
 
     // Callbacks
     protected $allowCallbacks = true;
+    protected $beforeInsert = ['setTimestamps'];
+    protected $beforeUpdate = ['setUpdateTimestamp'];
+
+    /**
+     * Set timestamps for new records
+     */
+    protected function setTimestamps(array $data)
+    {
+        $now = date('Y-m-d H:i:s');
+        if (!isset($data['data']['created_at'])) {
+            $data['data']['created_at'] = $now;
+        }
+        if (!isset($data['data']['updated_at'])) {
+            $data['data']['updated_at'] = $now;
+        }
+        return $data;
+    }
+
+    /**
+     * Set update timestamp
+     */
+    protected function setUpdateTimestamp(array $data)
+    {
+        if (!isset($data['data']['updated_at'])) {
+            $data['data']['updated_at'] = date('Y-m-d H:i:s');
+        }
+        return $data;
+    }
 }

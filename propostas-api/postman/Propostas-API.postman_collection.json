@@ -39,7 +39,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao.silva@example.com\",\n  \"documento\": \"12345678901\"\n}"
+							"raw": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao.silva@example.com\",\n  \"documento\": \"79365500036\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/v1/clientes",
