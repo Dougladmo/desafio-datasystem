@@ -24,9 +24,30 @@ docker compose up -d
 
 ⏱️ **Tempo de inicialização**: ~30 segundos
 🔑 **`.env` incluído**: Sem necessidade de configuração manual
-📦 **Banco populado**: 30 propostas de exemplo já criadas automaticamente
+🤖 **Banco populado automaticamente**: Migrations + Seeds executados pelo serviço `init`
 
 A API estará disponível em: **http://localhost:8080**
+
+### 🎯 O que acontece automaticamente no `docker compose up`
+
+O Docker Compose possui um serviço **`init`** que executa antes da aplicação:
+
+1. **Migrations** (`php spark migrate --all`)
+   - Cria estrutura do banco de dados
+   - Tabelas: `clientes`, `propostas`, `auditoria_proposta`
+
+2. **Seeds** (`php spark db:seed DatabaseSeeder`)
+   - Popula o banco com dados de exemplo:
+     - ✅ 10 clientes com CPFs válidos
+     - ✅ 30 propostas com diferentes status (DRAFT, SUBMITTED, APPROVED, REJECTED)
+     - ✅ Valores variados (R$ 99,90 a R$ 999,90)
+
+**Resultado**: Banco completamente pronto para uso! Teste imediatamente via [Swagger UI](http://localhost:8080/api/docs).
+
+> **💡 Nota**: Caso precise reexecutar os seeds manualmente:
+> ```bash
+> docker compose exec app php spark db:seed DatabaseSeeder
+> ```
 
 ## 📚 Documentação Completa
 
@@ -156,26 +177,42 @@ curl -X POST http://localhost:8080/api/v1/propostas \
 ## 🔧 Comandos Úteis
 
 ```bash
-# Ver logs
+# Ver logs do serviço init (migrations + seeds)
+docker compose logs init
+
+# Ver logs da aplicação
 docker compose logs -f app
 
-# Rodar migrations
-docker compose exec app php spark migrate
+# Reexecutar seeds manualmente (se necessário)
+docker compose exec app php spark db:seed DatabaseSeeder
 
 # Executar testes
 docker compose exec app composer test
 
-# Acessar container
+# Acessar container da aplicação
 docker compose exec app sh
 
 # Parar todos os serviços
 docker compose down
 
-# Limpar tudo e recomeçar
+# Limpar tudo e recomeçar (migrations + seeds rodarão automaticamente)
 docker compose down -v && docker compose up -d
 ```
 
 ## 📊 Database Schema
+
+### Migrations e Seeds Disponíveis
+
+**📁 Localização**: `propostas-api/app/Database/`
+
+**Migrations** (executadas automaticamente pelo serviço `init`):
+- ✅ `2026-02-10-154149_CreateClientesTable.php`
+- ✅ `2026-02-10-154214_CreatePropostasTable.php`
+- ✅ `2026-02-10-154238_CreateAuditoriaPropostaTable.php`
+
+**Seeds** (executados automaticamente pelo serviço `init`):
+- ✅ `ClienteSeeder.php` - Cria 10 clientes de exemplo
+- ✅ `PropostaSeeder.php` - Cria 30 propostas com dados variados
 
 ### Tabelas
 - **clientes**: Dados dos clientes (nome, email, documento)

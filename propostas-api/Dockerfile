@@ -24,8 +24,8 @@ WORKDIR /var/www/html
 # Copy application files
 COPY . .
 
-# Install dependencies
-RUN composer install --no-interaction --no-dev --optimize-autoloader
+# Install dependencies (including dev for seeds/tests)
+RUN composer install --no-interaction --optimize-autoloader
 
 # Set permissions (writable directories need write access for PHP)
 RUN chmod -R 775 writable/ && chown -R www-data:www-data writable/
