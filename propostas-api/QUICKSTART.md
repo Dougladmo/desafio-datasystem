@@ -12,7 +12,26 @@ Aguarde a mensagem:
 📍 API disponível em: http://localhost:8080
 ```
 
-## Passo 2: Testar a API
+## Passo 2: Verificar Health da API
+
+```bash
+curl http://localhost:8080/health
+```
+
+Resposta esperada (todos os serviços operacionais):
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-02-11 01:35:00",
+  "version": "1.0.0",
+  "services": {
+    "database": {"status": "up", "type": "MySQL"},
+    "redis": {"status": "up", "type": "Redis"}
+  }
+}
+```
+
+## Passo 3: Testar a API
 
 ### Opção A: Usando Postman (Recomendado)
 
@@ -69,7 +88,7 @@ curl -X POST http://localhost:8080/api/v1/propostas/1/approve
 curl http://localhost:8080/api/v1/propostas/1/auditoria
 ```
 
-## Passo 3: Explorar Recursos
+## Passo 4: Explorar Recursos
 
 ### Testar Idempotência
 
@@ -141,7 +160,7 @@ curl -X POST http://localhost:8080/api/v1/propostas/2/submit \
 curl -X POST http://localhost:8080/api/v1/propostas/2/approve
 ```
 
-## Passo 4: Verificar Banco de Dados
+## Passo 5: Verificar Banco de Dados
 
 ```bash
 # Acessar PostgreSQL
@@ -155,7 +174,7 @@ SELECT * FROM auditoria_proposta; # Ver auditoria
 \q                            # Sair
 ```
 
-## Passo 5: Ver Logs
+## Passo 6: Ver Logs
 
 ```bash
 # Logs da aplicação

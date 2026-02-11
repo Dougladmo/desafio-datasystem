@@ -7,6 +7,9 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 
+// Health Check
+$routes->get('health', 'Api\HealthController::index');
+
 // API v1 Routes
 $routes->group('api/v1', static function ($routes) {
     // Clientes

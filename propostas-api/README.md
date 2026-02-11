@@ -18,11 +18,10 @@ docker compose up -d
 1. ✅ Baixa as imagens (MySQL 8.0, Redis 7)
 2. ✅ Constrói a imagem da aplicação PHP
 3. ✅ Cria a rede Docker interna
-4. ✅ Inicia os 3 containers (MySQL, Redis, API)
-5. ✅ Aguarda o MySQL ficar pronto
-6. ✅ Executa as migrations (cria as 3 tabelas)
-7. ✅ Executa os seeders (popula com dados de teste)
-8. ✅ Inicia o servidor PHP na porta 8080
+4. ✅ Inicia MySQL e Redis
+5. ✅ Aguarda o MySQL ficar pronto (healthcheck)
+6. ✅ Container de inicialização roda migrations e seeders
+7. ✅ Inicia o servidor PHP na porta 8080
 
 ⏱️ **Tempo total**: 15-30 segundos (primeira vez pode demorar mais para baixar imagens)
 
@@ -63,6 +62,9 @@ docker compose up -d
 ```
 
 ## 📋 Endpoints Disponíveis
+
+### Health Check
+- `GET /health` - Verificar status da API e serviços (MySQL, Redis)
 
 ### Clientes
 - `POST /api/v1/clientes` - Criar cliente
@@ -239,6 +241,30 @@ docker compose up -d    # Recria tudo do zero
 ```
 
 ## 📝 Exemplos de Uso
+
+### Verificar Health Check
+```bash
+curl http://localhost:8080/health
+```
+
+Resposta esperada:
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-02-11 01:35:00",
+  "version": "1.0.0",
+  "services": {
+    "database": {
+      "status": "up",
+      "type": "MySQL"
+    },
+    "redis": {
+      "status": "up",
+      "type": "Redis"
+    }
+  }
+}
+```
 
 ### Criar Cliente
 ```bash

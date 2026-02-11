@@ -14,6 +14,11 @@ services:
     networks:
       - propostas_network
     command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -33,12 +38,39 @@ services:
     volumes:
       - .:/var/www/html
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      init:
+        condition: service_completed_successfully
     environment:
       - CI_ENVIRONMENT=development
     networks:
       - propostas_network
+
+  init:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: propostas_init
+    volumes:
+      - .:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      - CI_ENVIRONMENT=development
+    networks:
+      - propostas_network
+    command: >
+      sh -c "
+        echo '🚀 Inicializando banco de dados...' &&
+        php spark migrate --all &&
+        echo '🌱 Populando dados...' &&
+        php spark db:seed DatabaseSeeder &&
+        echo '✅ Inicialização concluída!'
+      "
 
 volumes:
   mysql_data:
