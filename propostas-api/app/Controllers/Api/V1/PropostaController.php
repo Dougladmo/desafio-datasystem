@@ -69,7 +69,7 @@ class PropostaController extends BaseController
         }
 
         // Check optimistic lock
-        if ($proposta['versao'] !== $expectedVersion) {
+        if ((int)$proposta['versao'] !== $expectedVersion) {
             return $this->formatError('Conflito de versão. A proposta foi modificada por outro processo.', 409);
         }
 
@@ -175,7 +175,7 @@ class PropostaController extends BaseController
             return $this->formatError('Proposta não encontrada', 404);
         }
 
-        if ($proposta['versao'] !== $expectedVersion) {
+        if ((int)$proposta['versao'] !== $expectedVersion) {
             return $this->formatError('Conflito de versão. A proposta foi modificada por outro processo.', 409);
         }
 
